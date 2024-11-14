@@ -1,6 +1,11 @@
 from microbit import *
 import music
+import radio
 
+def radioconfig():  #on config la radio, groupe 07, et power=7 pour la distance
+    radio.config(group=07, power=7)
+    radio.on() #on allume la radio
+    
 def open():
     music.play(music.JUMP_UP)
     display.show(Image.DUCK)
