@@ -3,7 +3,7 @@ import music
 import radio
 
 def radioconfig(): 
-    radio.config(group=07, power=7)
+    radio.config(group=7, power=7)
     radio.on()
 
 def open():
@@ -13,7 +13,7 @@ def open():
     display.scroll('Be:Bi Parent', delay=60)
 
 def getmsg():
-    temp = radio.receive()
+    temp = str(radio.receive())
     msg = temp.split("|")
     return msg
 
@@ -27,3 +27,14 @@ open()
 #     if 
 #     if 
 #     if
+
+
+def main():
+    radioconfig()
+    open()
+    while True:
+        
+        getmsg()
+        global msg
+
+        
