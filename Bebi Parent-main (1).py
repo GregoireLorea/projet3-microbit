@@ -37,4 +37,6 @@ def main():
         getmsg()
         global msg
 
+        if msg
+
         
