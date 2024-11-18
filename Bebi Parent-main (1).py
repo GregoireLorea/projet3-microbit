@@ -1,7 +1,8 @@
 from microbit import *
 import music
 import radio
-
+import speech
+import time
 def radioconfig(): 
     radio.config(group=7, power=7)
     radio.on()
@@ -14,29 +15,44 @@ def open():
 
 def getmsg():
     temp = str(radio.receive())
-    msg = temp.split("|")
-    return msg
+    if temp:
+        msg = temp.split("|")
+        return msg
 
+def if_states(msg):
+    
+    while msg[0] == "0x05":
+        if msg[2] == "reveillé":
+            display.show(Image.HAPPY)
+        
+        if msg[2] == "agité":
+            display.show(Image.SURPRISED)
 
+        if msg[2] == "tagité":
+            for i in range(3):
+                display.show(Image.ANGRY)
+                speech.say('Baby ALERT', speed=90)
+                
+                time.sleep_ms(600)
+                music.play(music.JUMP_UP)
+                time.sleep_ms(600)
+            display.clear()
 
-open()
-# while True
-
-#     en fonction de l'état deveil du bb, afficher et prévenir parent
-#     en fonction de l'ampleur et de la durée de mouvement bb, prévenir parent
-#     if 
-#     if 
-#     if
 
 
 def main():
     radioconfig()
     open()
     while True:
-        
-        getmsg()
-        global msg
+        display.show(Image.ASLEEP)
+        msg = getmsg()
 
-        if msg
+        if msg:
+            display.show(Image.HEART)
+            if_states(msg)
+
+
+main()
+
 
         
