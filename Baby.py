@@ -7,6 +7,13 @@ import music
 #radio.config(group=23, channel=2, address=0x11111111)
 #default : channel=7 (0-83), address = 0x75626974, group = 0 (0-255)
 
+radio.on()
+connexion_established = False
+key = "KEYWORD"
+connexion_key = None
+nonce_list = set()
+baby_state = 0
+set_volume(100)
 
 
 def hashing(string):
@@ -74,14 +81,17 @@ def vigenere(message, key, decryption=False):
     
 def send_packet(key, type, content):
     """
-    Envoie de données fournie en paramètres
-    Cette fonction permet de construire, de chiffrer puis d'envoyer un paquet via l'interface radio du micro:bit
+    Envoi de données fournies en paramètres
+    Cette fonction permet de construire, de chiffrer puis d'envoyer un paquet via l'interface radio du micro:bit.
 
     :param (str) key:       Clé de chiffrement
-           (str) type:      Type du paquet à envoyer
-           (str) content:   Données à envoyer
-	:return none
+    :param (str) type:      Type du paquet à envoyer
+    :param (str) content:   Données à envoyer
+    :return: None
     """
+    message = (type + "|" + str(len(content)) + "|" + content)  # Construire le message
+    encrypted_message = vigenere(message, key)   # Chiffrer le message
+    radio.send(encrypted_message)                # Envoyer via l'interface radio
 
 #Decrypt and unpack the packet received and return the fields value
 def unpack_data(encrypted_packet, key):
@@ -92,9 +102,18 @@ def unpack_data(encrypted_packet, key):
     :param (str) encrypted_packet: Paquet reçu
            (str) key:              Clé de chiffrement
 	:return (srt)type:             Type de paquet
-            (int)lenght:           Longueur de la donnée en caractères
-            (str) message:         Données reçues
+            (int)length:           Longueur de la donnée en caractères
+            (str) message:         Données reçue
     """
+    try:
+        decrypted_message = vigenere(encrypted_packet, key, decryption=True)  # Déchiffrer, grace a decryption = True (false de base)
+        type, length, message = decrypted_message.split('|')  # Découper les champs
+        length = int(length)  # Convertir la longueur en entier
+        if len(message) == length:  # Vérification de cohérence
+            return type, length, message
+    except:
+        pass  # Gestion d'erreur
+    return "", 0, ""  # Retourner des valeurs vides en cas d'erreur
 
 
 #Unpack the packet, check the validity and return the type, length and content
@@ -110,25 +129,59 @@ def receive_packet(packet_received, key):
             (int)lenght:           Longueur de la donnée en caractère
             (str) message:         Données reçue
     """
+    return unpack_data(packet_received, key)
     
-#Calculate the challenge response
 def calculate_challenge_response(challenge):
     """
-    Calcule la réponse au challenge initial de connection avec l'autre micro:bit
+    Calcule la réponse au challenge initial de connection envoyé par l'autre micro:bit
 
     :param (str) challenge:            Challenge reçu
 	:return (srt)challenge_response:   Réponse au challenge
     """
+    challenge_reponse = hashing(challenge)
+    return challenge_reponse
     
 #Ask for a new connection with a micro:bit of the same group
 def establish_connexion(key):
     """
-    Etablissement de la connexion avec l'autre micro:bit
-    Si il y a une erreur, la valeur de retour est vide
+    Établissement de la connexion avec l'autre micro:bit.
+    Si une erreur survient ou si la connexion échoue, retourne une chaîne vide.
 
-    :param (str) key:                  Clé de chiffrement
-	:return (srt)challenge_response:   Réponse au challenge
+    :param (str) key: Clé de chiffrement
+    :return (str): Réponse au challenge si succès, chaîne vide sinon.
     """
+    challenge = str(random.randint(1000, 9999))  # Générer un challenge aléatoire
+    send_packet(key, "CHALLENGE", challenge)  # Envoi du challenge
+    
+    start_time = running_time()  # Temps de départ
+    while running_time() - start_time < 15000:  # Timeout de 5 secondes
+        received_packet = radio.receive()  # Réception d'un paquet
+        if received_packet:
+            # Déchiffrer et extraire les données du paquet
+            packet_type, length, content = unpack_data(received_packet, key)
+            if packet_type == "RESPONSE":
+                # Valider la réponse
+                expected_response = calculate_challenge_response(challenge)
+                if content == expected_response:
+                    display.show(Image.YES)  # Afficher un symbole de réussite
+                    sleep(1000)
+                    print(content)
+                    return content  # Retourner la réponse validée
+                    
 
-def main():
-    return True
+    # Si aucun paquet valide reçu dans le temps imparti
+    display.show(Image.NO)  # Afficher un symbole d'échec
+    sleep(1000)
+    return ""  # Retourner une chaîne vide
+
+def open():
+    music.play(music.JUMP_UP)
+    display.show(Image.DUCK)
+    sleep(1000)
+    display.scroll('Be:Bi Enfant', delay=60)
+    
+
+
+open()
+establish_connexion(key)
+print()

@@ -90,7 +90,7 @@ def send_packet(key, type, content):
            (str) content:   Données à envoyer
 	:return none
     """
-    message = f"{type}|{len(content)}|{content}"  # Construire le message
+    message = (type + "|" + str(len(content)) + "|" + content)  # Construire le message
     encrypted_message = vigenere(message, key)  # Chiffrer le message
     radio.send(encrypted_message)  # Envoyer via l'interface radio
 
@@ -161,4 +161,29 @@ def respond_to_connexion_request(key):
             response = calculate_challenge_response(challenge)
             send_packet(key, "RESPONSE", response)
             return response
+
     return ""
+
+def open():
+    music.play(music.JUMP_UP)
+    display.show(Image.HOUSE)
+    sleep(1000)
+    display.scroll('Be:Bi Parent', delay=60)
+
+def initialising():
+    start_time = running_time()  # Temps de départ
+    while running_time() - start_time < 15000:  # Timeout de 15 secondes
+        respond_to_connexion_request(key)
+    if respond_to_connexion_request(key) == "":
+        while True:
+            display.show(Image.NO)  # Afficher un symbole d'échec
+            sleep(1000)
+            display.scroll("ERROR : REBOOT MICROBITS", delay=60)
+    
+
+
+def main():
+    open()
+    initialising()
+
+main()
