@@ -1,0 +1,52 @@
+
+
+
+
+Une interface utilisateur mettant à profit le haut-parleur ainsi que l’affichage LED. 
+Cette interface doit permettre :
+- De communiquer l’état d’éveil du bébé sur le be:bi’ parent;
+- De rassurer le bébé, en fonction de son état d’éveil, sur le be:bi’ enfant;
+
+— La détection des mouvements du nourrisson sur le be:bi’ enfant;
+Cette détection se traduit en trois états d’éveil du bébé (endormi, agité, très agité), 
+en fonction de l’ampleur et de la durée des mouvements. 
+L’état très agité demande une intervention rapide du parent. Elle inclut la situation où l’enfant serait tombé.
+
+— L’envoi de différents niveaux d’alarmes du be:bi’ 
+enfant au be:bi’ parent (endormi, agité, très agité) ;
+Dans un premier temps, les communications entre les deux be:bi’ auront lieu en clair
+Dans un second temps, vous chiffrerez les communications
+
+Concernant la “quantité de lait ingurgitée”
+Il proposera une interface utilisant les boutons et le panneau de LED. 
+Cette interface doit permettre : 
+sur le be:bi’ parent : 
+    1. de saisir la prise une nouvelle dose de lait; 
+    2. de supprimer l’acquisition d’une dose de lait erronée; 
+    3. de ré-initialiser à zéro la quantité de doses de lait;
+sur le be:bi’ parent et le be:bi’ enfant, de consulter la quantité de lait consommée.
+La dose de lait consommée est un entier positif.
+
+Fonctionnalité perso
+Concernant la temperature:
+Sur le bebi parent:     
+    Il proposera une interface mettant à profit le capteur de temperature du bebi enfant et afficher
+    la temperature sur celui-ci 
+    Enverra une alerte automtiquement si la temperature depasse un seuil ou est trop faible.
+
+Fonctionnalité additionnel:
+
+
+
+Toutes données échangés est TLV : Type, longueur, contenu
+
+1) Différencier les 2 avec une image au début sur le microbit CHEK
+
+
+
+
+
+
+
+
+Sécurisation des messages:  
