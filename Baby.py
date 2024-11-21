@@ -13,7 +13,6 @@ key = "KEYWORD"
 connexion_key = None
 nonce_list = set()
 baby_state = 0
-set_volume(100)
 
 
 def hashing(string):
@@ -154,7 +153,8 @@ def establish_connexion(key):
     send_packet(key, "CHALLENGE", challenge)  # Envoi du challenge
     
     start_time = running_time()  # Temps de départ
-    while running_time() - start_time < 15000:  # Timeout de 5 secondes
+    while running_time() - start_time < 15000:# Timeout de 5 secondes
+        # display.show(Image.ALL_CLOCKS, delay=100, loop=False, clear=True)
         received_packet = radio.receive()  # Réception d'un paquet
         if received_packet:
             # Déchiffrer et extraire les données du paquet
@@ -163,25 +163,41 @@ def establish_connexion(key):
                 # Valider la réponse
                 expected_response = calculate_challenge_response(challenge)
                 if content == expected_response:
+                    send_packet(key, "RESPONSEY", expected_response) #Préviens qu'il a réussi
                     display.show(Image.YES)  # Afficher un symbole de réussite
                     sleep(1000)
-                    print(content)
-                    return content  # Retourner la réponse validée
+                    display.clear()
+                    return True
+                    
                     
 
     # Si aucun paquet valide reçu dans le temps imparti
-    display.show(Image.NO)  # Afficher un symbole d'échec
-    sleep(1000)
-    return ""  # Retourner une chaîne vide
+    
+    display.show(Image.NO)
+    sleep(5000)
+    display.scroll("ERROR CONNECTION: REBOOT MICROBITS", delay=60)
+    return False  # Retourner une chaîne vide
 
 def open():
     music.play(music.JUMP_UP)
     display.show(Image.DUCK)
     sleep(1000)
     display.scroll('Be:Bi Enfant', delay=60)
+
+def initialising():
+    global connexion_established
+    if establish_connexion(key) == True:
+        connexion_established = True
+        return connexion_established
+    else:
+        display.scroll("CONNECTION ERROR, REBOOT MICROBITS", delay=60)
+            
     
 
-
-open()
-establish_connexion(key)
-print()
+def main():
+    open()
+    initialising()
+    if connexion_established:
+        while True:
+            display.show(Image.HAPPY)
+main()

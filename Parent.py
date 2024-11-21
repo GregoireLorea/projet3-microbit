@@ -14,7 +14,6 @@ key = "KEYWORD"
 connexion_key = None
 nonce_list = set()
 baby_state = 0
-set_volume(100)
 
 def hashing(string):
 	"""
@@ -157,10 +156,16 @@ def respond_to_connexion_request(key):
     incoming = radio.receive()  # Recevoir un challenge
     if incoming:
         type, length, challenge = unpack_data(incoming, key)
+        response = calculate_challenge_response(challenge)
         if type == "CHALLENGE":
-            response = calculate_challenge_response(challenge)
+            
+            
             send_packet(key, "RESPONSE", response)
-            return response
+        if type == "RESPONSEY":
+            return True
+            
+    
+            
 
     return ""
 
@@ -171,19 +176,32 @@ def open():
     display.scroll('Be:Bi Parent', delay=60)
 
 def initialising():
+    global connexion_established
     start_time = running_time()  # Temps de départ
     while running_time() - start_time < 15000:  # Timeout de 15 secondes
-        respond_to_connexion_request(key)
+        # respond_to_connexion_request(key)
+        # display.show(Image.ALL_CLOCKS, delay=100, loop=False, clear=True)
+        if respond_to_connexion_request(key) == True:
+            display.show(Image.YES)  # Afficher un symbole de réussite
+            sleep(1000)
+            connexion_established = True
+            return connexion_established
     if respond_to_connexion_request(key) == "":
         while True:
             display.show(Image.NO)  # Afficher un symbole d'échec
-            sleep(1000)
-            display.scroll("ERROR : REBOOT MICROBITS", delay=60)
+            sleep(5000)
+            display.scroll("ERROR CONNECTION: REBOOT MICROBITS", delay=60)
+
+            
     
 
 
 def main():
     open()
     initialising()
+    if connexion_established:
+        while True:
+            display.show(Image.HAPPY)
+        
 
 main()
