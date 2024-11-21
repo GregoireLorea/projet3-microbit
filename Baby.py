@@ -14,6 +14,7 @@ connexion_key = None
 nonce_list = set()
 baby_state = 0
 
+milk_doses = 0
 
 def hashing(string):
 	"""
@@ -179,19 +180,55 @@ def establish_connexion(key):
     return False  # Retourner une chaîne vide
 
 def open():
+    """
+    Allumage du microbit
+    """
     music.play(music.JUMP_UP)
     display.show(Image.DUCK)
     sleep(1000)
     display.scroll('Be:Bi Enfant', delay=60)
 
 def initialising():
+    """
+    Connexion entre les deux microbits
+    """
     global connexion_established
     if establish_connexion(key) == True:
         connexion_established = True
         return connexion_established
     else:
         display.scroll("CONNECTION ERROR, REBOOT MICROBITS", delay=60)
-            
+
+def display_milk_doses():
+    """
+    Affiche la quantité de lait consommée en doses sur le panneau LED.
+    """
+    display.scroll("Milk: {}".format(milk_doses), delay=80)
+
+
+
+
+
+def receive_milk_doses():
+    """
+    Reçoit la quantité de lait consommée depuis un autre micro:bit.
+    """
+    global milk_doses
+    incoming = radio.receive()
+    packet_type, length, content = unpack_data(incoming, key)
+    if packet_type == "MILK":
+        milk_doses = incoming
+        display_milk_doses()
+        
+def interface():
+
+
+
+    if button_a.is_pressed():
+        display_milk_doses()
+
+
+
     
 
 def main():
@@ -199,5 +236,8 @@ def main():
     initialising()
     if connexion_established:
         while True:
-            display.show(Image.HAPPY)
+            display.show(Image.DUCK)
+            receive_milk_doses()
+            interface()
+            
 main()

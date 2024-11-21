@@ -15,6 +15,12 @@ connexion_key = None
 nonce_list = set()
 baby_state = 0
 
+#Quantité de lait variable
+milk_doses = 0 
+is_parent = True
+interface_active = False
+
+
 def hashing(string):
 	"""
 	Hachage d'une chaîne de caractères fournie en paramètre.
@@ -89,7 +95,7 @@ def send_packet(key, type, content):
            (str) content:   Données à envoyer
 	:return none
     """
-    message = (type + "|" + str(len(content)) + "|" + content)  # Construire le message
+    message = (type + "|" + str(len(content)) + "|" + str(content))  # Construire le message
     encrypted_message = vigenere(message, key)  # Chiffrer le message
     radio.send(encrypted_message)  # Envoyer via l'interface radio
 
@@ -170,12 +176,18 @@ def respond_to_connexion_request(key):
     return ""
 
 def open():
+    """
+    Allumage du microbit
+    """
     music.play(music.JUMP_UP)
     display.show(Image.HOUSE)
     sleep(1000)
     display.scroll('Be:Bi Parent', delay=60)
 
 def initialising():
+    """
+    Connexion entre les deux microbits
+    """
     global connexion_established
     start_time = running_time()  # Temps de départ
     while running_time() - start_time < 15000:  # Timeout de 15 secondes
@@ -192,16 +204,91 @@ def initialising():
             sleep(5000)
             display.scroll("ERROR CONNECTION: REBOOT MICROBITS", delay=60)
 
-            
+
+
+def display_milk_doses():
+    """
+    Affiche la quantité de lait consommée en doses sur le panneau LED.
+    """
+    display.scroll("Milk: {}".format(milk_doses), delay=80)
     
+def send_milk_doses():
+    """
+    Envoie la quantité de lait consommée à l'autre micro:bit via la radio.
+    """
+    send_packet(key, "MILK", str(milk_doses))
 
+def handle_buttons():
+    """
+    Gère les boutons pour les fonctionnalités :
+    A : Ajouter une dose de lait.
+    B : Supprimer une dose de lait.
+    logo : Réinitialiser à zéro.
+    """
+    global milk_doses
 
+    # Ajouter une dose de lait
+    if button_a.was_pressed():
+        milk_doses += 1
+        display.show(Image.HAPPY)
+        sleep(500)
+        display_milk_doses()
+        send_milk_doses()
+
+    # Supprimer une dose de lait
+    elif button_b.was_pressed():
+        if milk_doses > 0:
+            milk_doses -= 1
+        display.show(Image.SAD)
+        sleep(500)
+        display_milk_doses()
+        send_milk_doses()
+
+    # Réinitialiser la quantité de lait
+    if pin_logo.is_touched():
+        milk_doses = 0
+        display.show(Image.NO)
+        sleep(500)
+        display_milk_doses()
+        send_milk_doses()
+
+def receive_milk_doses():
+    """
+    Reçoit la quantité de lait consommée depuis un autre micro:bit.
+    """
+    global milk_doses
+    incoming = radio.receive()
+    packet_type, length, content = unpack_data(incoming, key)
+    if packet_type == "MILK":
+        milk_doses = incoming
+        display_milk_doses()
+
+def toggle_interface():
+    """
+    Active ou désactive l'interface de gestion en fonction d'une pression longue.
+    """
+    global interface_active
+
+    # Vérifie une pression longue sur le bouton A
+    if button_a.is_pressed():
+        start_time = running_time()
+        while button_a.is_pressed():
+            if running_time() - start_time > 2000:  # Appui long (2 secondes)
+                interface_active = not interface_active
+                display.show(Image.YES if interface_active else Image.NO)
+                sleep(1000)
+                return
+        
 def main():
     open()
     initialising()
     if connexion_established:
         while True:
-            display.show(Image.HAPPY)
+            display.show(Image.ASLEEP)
+            toggle_interface()  # Gère l'activation/désactivation de l'interface
+            if interface_active and is_parent:
+                handle_buttons()  # Parent : Gère les boutons
+            receive_milk_doses()  # Parent et enfant : Reçoit les données
         
 
 main()
