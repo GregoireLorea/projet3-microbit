@@ -155,7 +155,7 @@ def establish_connexion(key):
     
     start_time = running_time()  # Temps de départ
     while running_time() - start_time < 15000:# Timeout de 5 secondes
-        # display.show(Image.ALL_CLOCKS, delay=100, loop=False, clear=True)
+        display.show(Image.ALL_CLOCKS, delay=100, loop=False, clear=True)
         received_packet = radio.receive()  # Réception d'un paquet
         if received_packet:
             # Déchiffrer et extraire les données du paquet
@@ -206,9 +206,6 @@ def display_milk_doses():
     display.scroll("Milk: {}".format(milk_doses), delay=80)
 
 
-
-
-
 def receive_milk_doses():
     """
     Reçoit la quantité de lait consommée depuis un autre micro:bit.
@@ -216,18 +213,18 @@ def receive_milk_doses():
     global milk_doses
     incoming = radio.receive()
     packet_type, length, content = unpack_data(incoming, key)
-    if packet_type == "MILK":
-        milk_doses = incoming
-        display_milk_doses()
+    if incoming:
+        if packet_type == "MILK":
+            milk_doses = incoming
+            display_milk_doses()
         
 def interface():
-
-
+    """
+    Affiche la quantité de lait si le bouton A est pressé.
+    """
 
     if button_a.is_pressed():
         display_milk_doses()
-
-
 
     
 
