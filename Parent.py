@@ -19,6 +19,7 @@ baby_state = 0
 milk_doses = 0 
 is_parent = True
 interface_active = False
+temperatur = None
 
 
 def hashing(string):
@@ -84,6 +85,12 @@ def vigenere(message, key, decryption=False):
         else:
             text += char
     return text
+
+def generate_nonce():
+    """
+    Génère le nonce
+    """
+    return str(random.randint(100000, 999999))
     
 def send_packet(key, type, content):
     """
@@ -99,8 +106,15 @@ def send_packet(key, type, content):
     encrypted_message = vigenere(message, key)  # Chiffrer le message
     radio.send(encrypted_message)  # Envoyer via l'interface radio
 
-
-
+def send_packet_with_nonce(key, type, content):
+    """
+    Envoie un paquet avec un nonce unique pour éviter les attaques de rejeu.
+    """
+    nonce = generate_nonce()
+    message = (nonce + ":" + content)
+    send_packet(key, type, message)
+    nonce_list.add(nonce)
+    
 #Unpack the packet, check the validity and return the type, length and content
 def unpack_data(encrypted_packet, key):
     """
@@ -125,17 +139,16 @@ def unpack_data(encrypted_packet, key):
 
 def receive_packet(packet_received, key):
     """
-    Traite les paquets reçus via l'interface radio du micro:bit
-    Cette fonction utilise la fonction unpack_data pour renvoyer les différents champs du message passé en paramètre
-    Si une erreur survient, les 3 champs sont retournés vides
-
-    :param (str) packet_received: Paquet reçue
-           (str) key:              Clé de chiffrement
-	:return (srt)type:             Type de paquet
-            (int)lenght:           Longueur de la donnée en caractère
-            (str) message:         Données reçue
+    Traite les paquets reçus via l'interface radio du micro:bit.
+    Si un nonce est détecté comme déjà utilisé, le message est ignoré.
     """
-    return unpack_data(packet_received, key)
+    type, length, message = unpack_data(packet_received, key)
+    if message:
+        nonce, content = message.split(':', 1)
+        if nonce not in nonce_list:  # Vérifie que le nonce est unique
+            nonce_list.add(nonce)
+            return type, length, content
+    return "", 0, ""
 
 
 #Calculate the challenge response
@@ -152,28 +165,20 @@ def calculate_challenge_response(challenge):
 #Respond to a connexion request by sending the hash value of the number received
 def respond_to_connexion_request(key):
     """
-    Réponse au challenge initial de connection avec l'autre micro:bit
-    Si il y a une erreur, la valeur de retour est vide
-
-    :param (str) key:                   Clé de chiffrement
-	:return (srt) challenge_response:   Réponse au challenge
+    Réponse au challenge initial de connection avec l'autre micro:bit.
+    Retourne True si la connexion est réussie, False sinon.
     """
-
     incoming = radio.receive()  # Recevoir un challenge
     if incoming:
-        type, length, challenge = unpack_data(incoming, key)
-        response = calculate_challenge_response(challenge)
+        type, length, challenge = receive_packet(incoming, key)
         if type == "CHALLENGE":
-            
-            
-            send_packet(key, "RESPONSE", response)
-        if type == "RESPONSEY":
+            response = calculate_challenge_response(challenge)
+            send_packet_with_nonce(key, "RESPONSE", response)
             return True
-            
-    
-            
+        elif type == "RESPONSEY":
+            return True
+    return False
 
-    return ""
 
 def open():
     """
@@ -192,14 +197,14 @@ def initialising():
     start_time = running_time()  # Temps de départ
     while running_time() - start_time < 15000:  # Timeout de 15 secondes
         # respond_to_connexion_request(key)
-        display.show(Image.ALL_CLOCKS, delay=100, loop=False, clear=True)
+        # display.show(Image.ALL_CLOCKS, delay=100, loop=False, clear=True)
         if respond_to_connexion_request(key) == True:
             display.show(Image.YES)  # Afficher un symbole de réussite
             sleep(1000)
             connexion_established = True
             return connexion_established
-    if respond_to_connexion_request(key) == "":
-        while True:
+   
+    while True:
             display.show(Image.NO)  # Afficher un symbole d'échec
             sleep(5000)
             display.scroll("ERROR CONNECTION: REBOOT MICROBITS", delay=60)
@@ -216,7 +221,7 @@ def send_milk_doses():
     """
     Envoie la quantité de lait consommée à l'autre micro:bit via la radio.
     """
-    send_packet(key, "MILK", str(milk_doses))
+    send_packet_with_nonce(key, "MILK", str(milk_doses))
 
 def handle_buttons():
     """
@@ -252,16 +257,6 @@ def handle_buttons():
         display_milk_doses()
         send_milk_doses()
 
-def receive_milk_doses():
-    """
-    Reçoit la quantité de lait consommée depuis un autre micro:bit.
-    """
-    global milk_doses
-    incoming = radio.receive()
-    packet_type, length, content = unpack_data(incoming, key)
-    if packet_type == "MILK":
-        milk_doses = incoming
-        display_milk_doses()
 
 def toggle_interface():
     """
@@ -278,7 +273,29 @@ def toggle_interface():
                 display.show(Image.YES if interface_active else Image.NO)
                 sleep(1000)
                 return
+
+
+def receive_temp():
+    global temperatur
+    incoming = radio.receive()
+    if incoming:  # Check if there is a message received
+        packet_type, length, content = receive_packet(incoming, key)
+        if packet_type == "TEMP":
+            temperatur = int(content)  # Update the temp value if a TEMP packet is received
+
+def display_temp():
+    if temperatur is not None:  # Check if temp has a valid value
+        display.scroll(temperatur)  # Display the temperature
+
+def temp():
+    receive_temp()
+    if button_b.is_pressed():
+        display_temp()
         
+        
+
+
+
 def main():
     open()
     initialising()
@@ -288,7 +305,8 @@ def main():
             toggle_interface()  # Gère l'activation/désactivation de l'interface
             if interface_active and is_parent:
                 handle_buttons()  # Parent : Gère les boutons
-            receive_milk_doses()  # Parent et enfant : Reçoit les données
+            
+            temp()
         
 
 main()

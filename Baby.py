@@ -14,6 +14,7 @@ connexion_key = None
 nonce_list = set()
 baby_state = 0
 
+
 milk_doses = 0
 
 def hashing(string):
@@ -78,7 +79,22 @@ def vigenere(message, key, decryption=False):
         else:
             text += char
     return text
+
+def generate_nonce():
+    """
+    Génère le nonce
+    """
+    return str(random.randint(100000, 999999))
     
+def send_packet_with_nonce(key, type, content):
+    """
+    Envoie un paquet avec un nonce unique pour éviter les attaques de rejeu.
+    """
+    nonce = generate_nonce()
+    message = (nonce + ":" + content)
+    send_packet(key, type, message)
+    nonce_list.add(nonce)   
+
 def send_packet(key, type, content):
     """
     Envoi de données fournies en paramètres
@@ -119,17 +135,16 @@ def unpack_data(encrypted_packet, key):
 #Unpack the packet, check the validity and return the type, length and content
 def receive_packet(packet_received, key):
     """
-    Traite les paquets reçue via l'interface radio du micro:bit
-    Cette fonction permet de construire, de chiffrer puis d'envoyer un paquet via l'interface radio du micro:bit
-    Si une erreur survient, les 3 champs sont retournés vides
-
-    :param (str) packet_received: Paquet reçue
-           (str) key:              Clé de chiffrement
-	:return (srt)type:             Type de paquet
-            (int)lenght:           Longueur de la donnée en caractère
-            (str) message:         Données reçue
+    Traite les paquets reçus via l'interface radio du micro:bit.
+    Si un nonce est détecté comme déjà utilisé, le message est ignoré.
     """
-    return unpack_data(packet_received, key)
+    type, length, message = unpack_data(packet_received, key)
+    if message:
+        nonce, content = message.split(':', 1)
+        if nonce not in nonce_list:  # Vérifie que le nonce est unique
+            nonce_list.add(nonce)
+            return type, length, content
+    return "", 0, ""
     
 def calculate_challenge_response(challenge):
     """
@@ -151,20 +166,20 @@ def establish_connexion(key):
     :return (str): Réponse au challenge si succès, chaîne vide sinon.
     """
     challenge = str(random.randint(1000, 9999))  # Générer un challenge aléatoire
-    send_packet(key, "CHALLENGE", challenge)  # Envoi du challenge
+    send_packet_with_nonce(key, "CHALLENGE", challenge)  # Envoi du challenge
     
     start_time = running_time()  # Temps de départ
     while running_time() - start_time < 15000:# Timeout de 5 secondes
-        display.show(Image.ALL_CLOCKS, delay=100, loop=False, clear=True)
+        # display.show(Image.ALL_CLOCKS, delay=100, loop=False, clear=True)
         received_packet = radio.receive()  # Réception d'un paquet
         if received_packet:
             # Déchiffrer et extraire les données du paquet
-            packet_type, length, content = unpack_data(received_packet, key)
+            packet_type, length, content = receive_packet(received_packet, key)
             if packet_type == "RESPONSE":
                 # Valider la réponse
                 expected_response = calculate_challenge_response(challenge)
                 if content == expected_response:
-                    send_packet(key, "RESPONSEY", expected_response) #Préviens qu'il a réussi
+                    send_packet_with_nonce(key, "RESPONSEY", expected_response) #Préviens qu'il a réussi
                     display.show(Image.YES)  # Afficher un symbole de réussite
                     sleep(1000)
                     display.clear()
@@ -212,10 +227,11 @@ def receive_milk_doses():
     """
     global milk_doses
     incoming = radio.receive()
-    packet_type, length, content = unpack_data(incoming, key)
+    
     if incoming:
+        packet_type, length, content = receive_packet(incoming, key)
         if packet_type == "MILK":
-            milk_doses = incoming
+            milk_doses = content
             display_milk_doses()
         
 def interface():
@@ -226,7 +242,11 @@ def interface():
     if button_a.is_pressed():
         display_milk_doses()
 
-    
+def send_temp():
+    current_temp = str(temperature())
+    send_packet_with_nonce(key, "TEMP", current_temp)
+    if button_b.is_pressed():
+        display.scroll(current_temp)
 
 def main():
     open()
@@ -236,5 +256,7 @@ def main():
             display.show(Image.DUCK)
             receive_milk_doses()
             interface()
+            send_temp()
+            
             
 main()
