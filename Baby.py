@@ -9,7 +9,7 @@ import music
 
 radio.on()
 connexion_established = False
-key = "KEYWORD"
+key = "GROUPEB07ONT0P"
 connexion_key = None
 nonce_list = set()
 baby_state = 0
@@ -194,6 +194,10 @@ def establish_connexion(key):
     display.scroll("ERROR CONNECTION: REBOOT MICROBITS", delay=60)
     return False  # Retourner une chaîne vide
 
+########
+# INIT #
+########
+
 def open():
     """
     Allumage du microbit
@@ -213,6 +217,10 @@ def initialising():
         return connexion_established
     else:
         display.scroll("CONNECTION ERROR, REBOOT MICROBITS", delay=60)
+
+########
+# LAIT #
+########
 
 def display_milk_doses():
     """
@@ -241,6 +249,10 @@ def interface():
 
     if button_a.is_pressed():
         display_milk_doses()
+
+###############
+# TEMPERATURE #
+###############
 
 def send_temp():
     current_temp = str(temperature())

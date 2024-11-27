@@ -2,6 +2,7 @@ from microbit import *
 import radio
 import random
 import music
+import speech
 
 #Can be used to filter the communication, only the ones with the same parameters will receive messages
 #radio.config(group=23, channel=2, address=0x11111111)
@@ -10,7 +11,7 @@ import music
 #Initialisation des variables du micro:bit
 radio.on()
 connexion_established = False
-key = "KEYWORD"
+key = "GROUPEB07ONT0P"
 connexion_key = None
 nonce_list = set()
 baby_state = 0
@@ -179,6 +180,9 @@ def respond_to_connexion_request(key):
             return True
     return False
 
+########
+# INIT #
+########
 
 def open():
     """
@@ -209,7 +213,9 @@ def initialising():
             sleep(5000)
             display.scroll("ERROR CONNECTION: REBOOT MICROBITS", delay=60)
 
-
+########
+# LAIT #
+########
 
 def display_milk_doses():
     """
@@ -257,7 +263,6 @@ def handle_buttons():
         display_milk_doses()
         send_milk_doses()
 
-
 def toggle_interface():
     """
     Active ou désactive l'interface de gestion en fonction d'une pression longue.
@@ -274,25 +279,54 @@ def toggle_interface():
                 sleep(1000)
                 return
 
+###############
+# TEMPERATURE #
+###############
 
 def receive_temp():
     global temperatur
     incoming = radio.receive()
-    if incoming:  # Check if there is a message received
+    if incoming:  # Regarde si il y a un message
         packet_type, length, content = receive_packet(incoming, key)
         if packet_type == "TEMP":
-            temperatur = int(content)  # Update the temp value if a TEMP packet is received
+            temperatur = int(content)  # Upadate la valeur temperatur (temperature) si il recois un packet de type TEMP et la mets en entier
 
 def display_temp():
     if temperatur is not None:  # Check if temp has a valid value
-        display.scroll(temperatur)  # Display the temperature
+        display.scroll(str(temperatur))  # Display the temperature
+    if temperatur is None:
+        display.scroll("NONE")
+        
+def alerte_parent():#CHATGPTED
+    music.set_tempo(ticks=4, bpm=200) 
+    alert_song = [
+        'c4:4', 'e4:4', 'g4:4', 'c5:2',  # Montée rapide
+        'r4:2',  # Pause rapide
+        'c5:4', 'g4:4', 'e4:4', 'c4:2',  # Descente rapide
+        'r4:2',  # Pause rapide
+        'c4:4', 'c4:4', 'c4:4', 'r4:2',  # Rebond répétitif pour alerte
+    ]
+    music.play(alert_song, wait=False, loop=False,)
+    music.set_tempo(ticks=4, bpm=120)
+    
 
 def temp():
+    global temperatur
     receive_temp()
     if button_b.is_pressed():
         display_temp()
-        
-        
+    while temperatur is not None and temperatur > 35 :
+        alerte_parent()
+        display.show("!")
+        sleep(1000)
+        display.scroll("HIGH TEMPERATURE", delay=50)  
+        receive_temp()
+    while temperatur is not None and temperatur > 25 :
+        alerte_parent()
+        display.show("!")
+        sleep(1000)
+        display.scroll("LOW TEMPERATURE", delay=50)  
+        receive_temp()
 
 
 
@@ -305,8 +339,9 @@ def main():
             toggle_interface()  # Gère l'activation/désactivation de l'interface
             if interface_active and is_parent:
                 handle_buttons()  # Parent : Gère les boutons
+            temp() # Gère la température
             
-            temp()
+            
         
 
 main()
