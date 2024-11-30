@@ -2,6 +2,7 @@ from microbit import *
 import radio
 import random
 import music
+import math
 
 #Can be used to filter the communication, only the ones with the same parameters will receive messages
 #radio.config(group=23, channel=2, address=0x11111111)
@@ -13,7 +14,11 @@ key = "GROUPEB07ONT0P"
 connexion_key = None
 nonce_list = set()
 baby_state = 0
-
+max_nonce_size = 20 #ajouté pour ne pas limiter la mémoire, MEMORY OUT OF RANGE
+last_send_time = 0  # Temps du dernier envoi
+send_duration_agité = 5000  # Durée en millisecondes pour "agité" (5 secondes)
+send_duration_très_agité = 10000  # Durée en millisecondes pour "très agité" (10 secondes)
+previous_state = ""
 
 milk_doses = 0
 
@@ -93,8 +98,16 @@ def send_packet_with_nonce(key, type, content):
     nonce = generate_nonce()
     message = (nonce + ":" + content)
     send_packet(key, type, message)
-    nonce_list.add(nonce)   
+    add_nonce(nonce)  
 
+def add_nonce(nonce):
+    """
+    Ajoute un nonce à la liste tout en limitant la taille.
+    """
+    if len(nonce_list) >= max_nonce_size:
+        nonce_list.pop()  # Supprime un élément aléatoire (ou le plus ancien avec une structure adaptée)
+    nonce_list.add(nonce)
+    
 def send_packet(key, type, content):
     """
     Envoi de données fournies en paramètres
@@ -142,7 +155,7 @@ def receive_packet(packet_received, key):
     if message:
         nonce, content = message.split(':', 1)
         if nonce not in nonce_list:  # Vérifie que le nonce est unique
-            nonce_list.add(nonce)
+            add_nonce(nonce)
             return type, length, content
     return "", 0, ""
     
@@ -260,6 +273,53 @@ def send_temp():
     if button_b.is_pressed():
         display.scroll(current_temp)
 
+##############
+# ETAT EVEIL #
+##############
+def degrée_agitation():
+    global durée_mouvement
+    état = "endormi"
+    if accelerometer.was_gesture("shake"):
+        état = "agité"
+    if accelerometer.was_gesture("3g") or accelerometer.was_gesture("freefall"):
+        état = "très agité"
+    return état
+
+def etat():
+    global last_send_time, previous_state
+    état = degrée_agitation()
+    current_time = running_time() 
+
+    if état != previous_state:
+        if état == "endormi":
+            # Ne rien faire ou envoyer l'état une seule fois
+            send_packet_with_nonce("key", "ETAT", état)
+            print("dodo")
+            previous_state = état
+            last_send_time = current_time  # Mise à jour de l'heure d'envoi
+        elif état == "agité":
+            # Envoyer pendant 5 secondes
+            if current_time - last_send_time >= send_duration_agité:
+                print("agité")
+                send_packet_with_nonce("key", "ETAT", état)
+                previous_state = état
+                last_send_time = current_time  # Mise à jour de l'heure d'envoi
+            
+        
+            
+        elif état == "très agité":
+            # Envoyer pendant 10 secondes
+            if current_time - last_send_time >= send_duration_très_agité:
+                print("tagité")
+                send_packet_with_nonce("key", "ETAT", état)
+                previous_state = état
+                last_send_time = current_time  # Mise à jour de l'heure d'envoi
+        
+        
+        
+        
+        
+
 def main():
     open()
     initialising()
@@ -269,6 +329,7 @@ def main():
             receive_milk_doses()
             interface()
             send_temp()
+            etat()
             
             
 main()

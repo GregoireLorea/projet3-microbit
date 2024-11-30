@@ -21,7 +21,8 @@ milk_doses = 0
 is_parent = True
 interface_active = False
 temperatur = None
-
+max_nonce_size = 50 #max nonce dans la tuple
+ignore_alert_until = 0 #pour les alertes temp
 
 def hashing(string):
 	"""
@@ -105,8 +106,17 @@ def send_packet(key, type, content):
     """
     message = (type + "|" + str(len(content)) + "|" + str(content))  # Construire le message
     encrypted_message = vigenere(message, key)  # Chiffrer le message
+  
     radio.send(encrypted_message)  # Envoyer via l'interface radio
-
+    
+def add_nonce(nonce):
+    """
+    Ajoute un nonce à la liste tout en limitant la taille.
+    """
+    if len(nonce_list) >= max_nonce_size:
+        nonce_list.pop()  # Supprime un élément aléatoire (ou le plus ancien avec une structure adaptée)
+    nonce_list.add(nonce)
+    
 def send_packet_with_nonce(key, type, content):
     """
     Envoie un paquet avec un nonce unique pour éviter les attaques de rejeu.
@@ -114,7 +124,7 @@ def send_packet_with_nonce(key, type, content):
     nonce = generate_nonce()
     message = (nonce + ":" + content)
     send_packet(key, type, message)
-    nonce_list.add(nonce)
+    add_nonce(nonce)
     
 #Unpack the packet, check the validity and return the type, length and content
 def unpack_data(encrypted_packet, key):
@@ -147,7 +157,7 @@ def receive_packet(packet_received, key):
     if message:
         nonce, content = message.split(':', 1)
         if nonce not in nonce_list:  # Vérifie que le nonce est unique
-            nonce_list.add(nonce)
+            add_nonce(nonce)
             return type, length, content
     return "", 0, ""
 
@@ -312,21 +322,75 @@ def alerte_parent():#CHATGPTED
 
 def temp():
     global temperatur
-    receive_temp()
-    if button_b.is_pressed():
+    global ignore_alert_until  # Initialise le temps jusqu'auquel les alertes sont ignorées
+    
+    receive_temp()  # Met à jour la température initialement
+    
+    if button_b.is_pressed():  # Affiche la température si le bouton B est pressé
         display_temp()
-    while temperatur is not None and temperatur > 35 :
-        alerte_parent()
-        display.show("!")
+    
+    # Vérifie si le bouton A est pressé pour ignorer les alertes
+    if button_a.was_pressed() and interface_active == False:
+        ignore_alert_until = running_time() + 60000  # Ignorer les alertes pour 60 secondes
+        display.show(Image.NO)
         sleep(1000)
-        display.scroll("HIGH TEMPERATURE", delay=50)  
-        receive_temp()
-    while temperatur is not None and temperatur > 25 :
+        display.scroll("ALERTS MUTED FOR 1m", delay = 60)
+    
+    # Détecte si la température dépasse les seuils autorisés
+    if temperatur is not None:
+        # Si la température est trop élevée et que les alertes ne sont pas ignorées
+        if temperatur > 35 and running_time() > ignore_alert_until:
+            alerte_parent()
+            display.show("!")
+            sleep(1000)
+            display.scroll("HIGH TEMPERATURE", delay=50, wait=True)
+            receive_temp()
+        
+        # Si la température est trop basse et que les alertes ne sont pas ignorées
+        elif temperatur < 22 and running_time() > ignore_alert_until:
+            alerte_parent()
+            display.show("!")
+            sleep(1000)
+            display.scroll("LOW TEMPERATURE", delay=50, wait=True)
+            receive_temp()
+
+##############
+# ETAT EVEIL #
+##############
+
+
+
+
+def interface(): #état d'éveil du bébé
+    global baby_state
+    
+    if baby_state == 0:
+        display.show(Image.ASLEEP)
+    if baby_state == 1:
+        display.show(Image.HAPPY)
+    if baby_state == 2:
+        display.show(Image.SAD)
         alerte_parent()
-        display.show("!")
-        sleep(1000)
-        display.scroll("LOW TEMPERATURE", delay=50)  
-        receive_temp()
+        sleep(2000)
+        display.scroll("CHEK BABY", delay=50, wait=True)
+
+def etat():
+    global baby_state
+    incoming = radio.receive()
+    if incoming:  # Regarde si il y a un message
+        packet_type, length, content = receive_packet(incoming, key)
+        if packet_type == "ETAT":
+            if content == "endormi":
+                baby_state = 0
+            if content == "agité":
+                baby_state = 1
+            if content == "très agité":
+                baby_state = 2
+
+        
+    interface()
+    
+
 
 
 
@@ -335,7 +399,7 @@ def main():
     initialising()
     if connexion_established:
         while True:
-            display.show(Image.ASLEEP)
+            etat()
             toggle_interface()  # Gère l'activation/désactivation de l'interface
             if interface_active and is_parent:
                 handle_buttons()  # Parent : Gère les boutons
