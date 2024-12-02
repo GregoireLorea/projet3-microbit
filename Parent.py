@@ -384,7 +384,7 @@ def etat():
                 baby_state = 0
             if content == "agité":
                 baby_state = 1
-            if content == "très agité":
+            if content == "tagité":
                 baby_state = 2
 
         

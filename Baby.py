@@ -279,44 +279,36 @@ def send_temp():
 def degrée_agitation():
     global durée_mouvement
     état = "endormi"
-    if accelerometer.was_gesture("shake"):
+    if accelerometer.was_gesture('2g') or accelerometer.was_gesture('shake'):
         état = "agité"
     if accelerometer.was_gesture("3g") or accelerometer.was_gesture("freefall"):
-        état = "très agité"
+        état = "tagité"
     return état
 
 def etat():
-    global last_send_time, previous_state
     état = degrée_agitation()
-    current_time = running_time() 
+    if état == "endormi":
+        send_etat(état)
+        print(état)
+        sleep(300)
+    if état == "agité":
+        send_etat(état)
+        print(état)
+        sleep(3000)
+    if état == "tagité":
+        send_etat(état)
+        print(état)
+        sleep(1000)
+    
 
-    if état != previous_state:
-        if état == "endormi":
-            # Ne rien faire ou envoyer l'état une seule fois
-            send_packet_with_nonce("key", "ETAT", état)
-            print("dodo")
-            previous_state = état
-            last_send_time = current_time  # Mise à jour de l'heure d'envoi
-        elif état == "agité":
-            # Envoyer pendant 5 secondes
-            if current_time - last_send_time >= send_duration_agité:
-                print("agité")
-                send_packet_with_nonce("key", "ETAT", état)
-                previous_state = état
-                last_send_time = current_time  # Mise à jour de l'heure d'envoi
-            
-        
-            
-        elif état == "très agité":
-            # Envoyer pendant 10 secondes
-            if current_time - last_send_time >= send_duration_très_agité:
-                print("tagité")
-                send_packet_with_nonce("key", "ETAT", état)
-                previous_state = état
-                last_send_time = current_time  # Mise à jour de l'heure d'envoi
-        
-        
-        
+def send_etat(état):
+    send_packet_with_nonce(key, "ETAT", état) 
+    send_packet_with_nonce(key, "ETAT", état) 
+    send_packet_with_nonce(key, "ETAT", état) 
+    send_packet_with_nonce(key, "ETAT", état) 
+    send_packet_with_nonce(key, "ETAT", état) 
+    send_packet_with_nonce(key, "ETAT", état) 
+    send_packet_with_nonce(key, "ETAT", état) 
         
         
 
