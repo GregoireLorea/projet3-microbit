@@ -326,11 +326,11 @@ def temp():
     
     receive_temp()  # Met à jour la température initialement
     
-    if button_b.is_pressed():  # Affiche la température si le bouton B est pressé
+    if button_b.is_pressed() and interface_active == False:  # Affiche la température si le bouton B est pressé
         display_temp()
     
     # Vérifie si le bouton A est pressé pour ignorer les alertes
-    if button_a.was_pressed() and interface_active == False:
+    if pin_logo.is_touched() and interface_active == False:
         ignore_alert_until = running_time() + 60000  # Ignorer les alertes pour 60 secondes
         display.show(Image.NO)
         sleep(1000)
