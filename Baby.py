@@ -183,7 +183,7 @@ def establish_connexion(key):
     
     start_time = running_time()  # Temps de départ
     while running_time() - start_time < 15000:# Timeout de 5 secondes
-        # display.show(Image.ALL_CLOCKS, delay=100, loop=False, clear=True)
+        display.show(Image.ALL_CLOCKS, delay=100, loop=False, clear=True, wait=False)
         received_packet = radio.receive()  # Réception d'un paquet
         if received_packet:
             # Déchiffrer et extraire les données du paquet

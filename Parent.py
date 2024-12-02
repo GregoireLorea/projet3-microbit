@@ -211,7 +211,7 @@ def initialising():
     start_time = running_time()  # Temps de départ
     while running_time() - start_time < 15000:  # Timeout de 15 secondes
         # respond_to_connexion_request(key)
-        # display.show(Image.ALL_CLOCKS, delay=100, loop=False, clear=True)
+        display.show(Image.ALL_CLOCKS, delay=100, loop=False, clear=True, wait=False)
         if respond_to_connexion_request(key) == True:
             display.show(Image.YES)  # Afficher un symbole de réussite
             sleep(1000)
