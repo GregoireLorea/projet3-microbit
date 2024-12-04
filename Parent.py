@@ -175,6 +175,7 @@ def calculate_challenge_response(challenge):
 
 #Respond to a connexion request by sending the hash value of the number received
 def respond_to_connexion_request(key):
+    global session_key
     """
     Réponse au challenge initial de connection avec l'autre micro:bit.
     Retourne True si la connexion est réussie, False sinon.
@@ -182,11 +183,10 @@ def respond_to_connexion_request(key):
     incoming = radio.receive()  # Recevoir un challenge
     if incoming:
         type, length, challenge = receive_packet(incoming, key)
-        if type == "CHALLENGE":
+        if type == "0x01":
             response = calculate_challenge_response(challenge)
-            send_packet_with_nonce(key, "RESPONSE", response)
-            return True
-        elif type == "RESPONSEY":
+            send_packet_with_nonce(key, "0x02", response)
+            session_key = key+response  # Générer une clé de session
             return True
     return False
 
@@ -211,7 +211,7 @@ def initialising():
     start_time = running_time()  # Temps de départ
     while running_time() - start_time < 15000:  # Timeout de 15 secondes
         # respond_to_connexion_request(key)
-        display.show(Image.ALL_CLOCKS, delay=100, loop=False, clear=True, wait=False)
+        display.show(Image.ALL_CLOCKS, delay=100, loop=False, clear=True,)
         if respond_to_connexion_request(key) == True:
             display.show(Image.YES)  # Afficher un symbole de réussite
             sleep(1000)
@@ -237,7 +237,7 @@ def send_milk_doses():
     """
     Envoie la quantité de lait consommée à l'autre micro:bit via la radio.
     """
-    send_packet_with_nonce(key, "MILK", str(milk_doses))
+    send_packet_with_nonce(session_key, "MILK", str(milk_doses))
 
 def handle_buttons():
     """
@@ -297,7 +297,7 @@ def receive_temp():
     global temperatur
     incoming = radio.receive()
     if incoming:  # Regarde si il y a un message
-        packet_type, length, content = receive_packet(incoming, key)
+        packet_type, length, content = receive_packet(incoming,session_key)
         if packet_type == "TEMP":
             temperatur = int(content)  # Upadate la valeur temperatur (temperature) si il recois un packet de type TEMP et la mets en entier
 
@@ -316,9 +316,16 @@ def alerte_parent():#CHATGPTED
         'r4:2',  # Pause rapide
         'c4:4', 'c4:4', 'c4:4', 'r4:2',  # Rebond répétitif pour alerte
     ]
-    music.play(alert_song, wait=False, loop=False,)
+    music.play(alert_song, wait=False, loop=False)
     music.set_tempo(ticks=4, bpm=120)
     
+def ignore_alert():
+    global ignore_alert_until  # Initialise le temps jusqu'auquel les alertes sont ignorées
+    if pin_logo.is_touched() and interface_active == False:
+        ignore_alert_until = running_time() + 60000  # Ignorer les alertes pour 60 secondes
+        display.show(Image.NO)
+        sleep(1000)
+        display.scroll("ALERTS MUTED FOR 1m", delay = 60)
 
 def temp():
     global temperatur
@@ -330,11 +337,7 @@ def temp():
         display_temp()
     
     # Vérifie si le bouton A est pressé pour ignorer les alertes
-    if pin_logo.is_touched() and interface_active == False:
-        ignore_alert_until = running_time() + 60000  # Ignorer les alertes pour 60 secondes
-        display.show(Image.NO)
-        sleep(1000)
-        display.scroll("ALERTS MUTED FOR 1m", delay = 60)
+
     
     # Détecte si la température dépasse les seuils autorisés
     if temperatur is not None:
@@ -347,7 +350,7 @@ def temp():
             receive_temp()
         
         # Si la température est trop basse et que les alertes ne sont pas ignorées
-        elif temperatur < 22 and running_time() > ignore_alert_until:
+        elif temperatur < 25 and running_time() > ignore_alert_until:
             alerte_parent()
             display.show("!")
             sleep(1000)
@@ -369,8 +372,10 @@ def interface(): #état d'éveil du bébé
     if baby_state == 1:
         display.show(Image.HAPPY)
     if baby_state == 2:
+    
         display.show(Image.SAD)
-        alerte_parent()
+        if running_time() > ignore_alert_until:
+            alerte_parent()
         sleep(2000)
         display.scroll("CHEK BABY", delay=50, wait=True)
 
@@ -378,7 +383,7 @@ def etat():
     global baby_state
     incoming = radio.receive()
     if incoming:  # Regarde si il y a un message
-        packet_type, length, content = receive_packet(incoming, key)
+        packet_type, length, content = receive_packet(incoming, session_key)
         if packet_type == "ETAT":
             if content == "endormi":
                 baby_state = 0
@@ -404,6 +409,7 @@ def main():
             if interface_active and is_parent:
                 handle_buttons()  # Parent : Gère les boutons
             temp() # Gère la température
+            ignore_alert()
             
             
         

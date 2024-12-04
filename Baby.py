@@ -11,6 +11,7 @@ import math
 radio.on()
 connexion_established = False
 key = "GROUPEB07ONT0P"
+session_key = ""
 connexion_key = None
 nonce_list = set()
 baby_state = 0
@@ -171,6 +172,7 @@ def calculate_challenge_response(challenge):
     
 #Ask for a new connection with a micro:bit of the same group
 def establish_connexion(key):
+    global session_key
     """
     Établissement de la connexion avec l'autre micro:bit.
     Si une erreur survient ou si la connexion échoue, retourne une chaîne vide.
@@ -179,24 +181,24 @@ def establish_connexion(key):
     :return (str): Réponse au challenge si succès, chaîne vide sinon.
     """
     challenge = str(random.randint(1000, 9999))  # Générer un challenge aléatoire
-    send_packet_with_nonce(key, "CHALLENGE", challenge)  # Envoi du challenge
+    send_packet_with_nonce(key, "0x01", challenge)  # Envoi du challenge
     
     start_time = running_time()  # Temps de départ
     while running_time() - start_time < 15000:# Timeout de 5 secondes
-        display.show(Image.ALL_CLOCKS, delay=100, loop=False, clear=True, wait=False)
+        display.show(Image.ALL_CLOCKS, delay=100, loop=False, clear=True)
         received_packet = radio.receive()  # Réception d'un paquet
         if received_packet:
             # Déchiffrer et extraire les données du paquet
             packet_type, length, content = receive_packet(received_packet, key)
-            if packet_type == "RESPONSE":
+            if packet_type == "0x02":
                 # Valider la réponse
                 expected_response = calculate_challenge_response(challenge)
                 if content == expected_response:
-                    send_packet_with_nonce(key, "RESPONSEY", expected_response) #Préviens qu'il a réussi
+                    session_key = key+content
                     display.show(Image.YES)  # Afficher un symbole de réussite
                     sleep(1000)
                     display.clear()
-                    return True
+                    return True 
                     
                     
 
@@ -229,7 +231,10 @@ def initialising():
         connexion_established = True
         return connexion_established
     else:
-        display.scroll("CONNECTION ERROR, REBOOT MICROBITS", delay=60)
+        while True:
+            display.show(Image.NO)  # Afficher un symbole d'échec
+            sleep(5000)
+            display.scroll("ERROR CONNECTION: REBOOT MICROBITS", delay=60)
 
 ########
 # LAIT #
@@ -250,7 +255,7 @@ def receive_milk_doses():
     incoming = radio.receive()
     
     if incoming:
-        packet_type, length, content = receive_packet(incoming, key)
+        packet_type, length, content = receive_packet(incoming, session_key)
         if packet_type == "MILK":
             milk_doses = content
             display_milk_doses()
@@ -269,7 +274,7 @@ def interface():
 
 def send_temp():
     current_temp = str(temperature())
-    send_packet_with_nonce(key, "TEMP", current_temp)
+    send_packet_with_nonce(session_key, "TEMP", current_temp)
     if button_b.is_pressed():
         display.scroll(current_temp)
 
@@ -302,13 +307,13 @@ def etat():
     
 
 def send_etat(état):
-    send_packet_with_nonce(key, "ETAT", état) 
-    send_packet_with_nonce(key, "ETAT", état) 
-    send_packet_with_nonce(key, "ETAT", état) 
-    send_packet_with_nonce(key, "ETAT", état) 
-    send_packet_with_nonce(key, "ETAT", état) 
-    send_packet_with_nonce(key, "ETAT", état) 
-    send_packet_with_nonce(key, "ETAT", état) 
+    send_packet_with_nonce(session_key, "ETAT", état) 
+    send_packet_with_nonce(session_key, "ETAT", état) 
+    send_packet_with_nonce(session_key, "ETAT", état) 
+    send_packet_with_nonce(session_key, "ETAT", état) 
+    send_packet_with_nonce(session_key, "ETAT", état) 
+    send_packet_with_nonce(session_key, "ETAT", état) 
+    send_packet_with_nonce(session_key, "ETAT", état) 
         
         
 
