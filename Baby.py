@@ -23,6 +23,10 @@ previous_state = ""
 
 milk_doses = 0
 
+#####################
+# CRYPTO ET GENERAL #
+#####################
+
 def hashing(string):
 	"""
 	Hachage d'une chaîne de caractères fournie en paramètre.
@@ -315,7 +319,10 @@ def send_etat(état):
     send_packet_with_nonce(session_key, "ETAT", état) 
     send_packet_with_nonce(session_key, "ETAT", état) 
         
-        
+
+########
+# MAIN #
+########
 
 def main():
     open()

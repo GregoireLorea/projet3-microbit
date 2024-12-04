@@ -24,6 +24,12 @@ temperatur = None
 max_nonce_size = 50 #max nonce dans la tuple
 ignore_alert_until = 0 #pour les alertes temp
 
+
+#####################
+# CRYPTO ET GENERAL #
+#####################
+
+
 def hashing(string):
 	"""
 	Hachage d'une chaîne de caractères fournie en paramètre.
@@ -398,6 +404,9 @@ def etat():
 
 
 
+########
+# MAIN #
+########
 
 def main():
     open()
@@ -406,10 +415,10 @@ def main():
         while True:
             etat()
             toggle_interface()  # Gère l'activation/désactivation de l'interface
-            if interface_active and is_parent:
+            if interface_active and is_parent: # Si l'interface est active et que le micro:bit est parent
                 handle_buttons()  # Parent : Gère les boutons
             temp() # Gère la température
-            ignore_alert()
+            ignore_alert() # Gère l'ignorance des alertes
             
             
         
