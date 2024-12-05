@@ -2,11 +2,15 @@ from microbit import *
 import radio
 import random
 import music
-import speech
 
-#Can be used to filter the communication, only the ones with the same parameters will receive messages
-#radio.config(group=23, channel=2, address=0x11111111)
-#default : channel=7 (0-83), address = 0x75626974, group = 0 (0-255)
+######################
+# TYPES DE PAQUETS   #
+# 0x01 : CHALLENGE   #
+# 0x02 : REPONSE     #
+# 0x03 : MILK DOSES  #
+# 0x04 : TEMPERATURE #
+# 0x05 : ETAT EVEIL  #
+######################
 
 #Initialisation des variables du micro:bit
 radio.on()
@@ -15,8 +19,6 @@ key = "GROUPEB07ONT0P"
 connexion_key = None
 nonce_list = set()
 baby_state = 0
-
-#Quantité de lait variable
 milk_doses = 0 
 is_parent = True
 interface_active = False
@@ -120,7 +122,7 @@ def add_nonce(nonce):
     Ajoute un nonce à la liste tout en limitant la taille.
     """
     if len(nonce_list) >= max_nonce_size:
-        nonce_list.pop()  # Supprime un élément aléatoire (ou le plus ancien avec une structure adaptée)
+        nonce_list.pop()  # Supprime un élément aléatoire (ou le plus ancien avec une structure adaptée) pour ne pas avoir un MemoryError
     nonce_list.add(nonce)
     
 def send_packet_with_nonce(key, type, content):
@@ -243,7 +245,7 @@ def send_milk_doses():
     """
     Envoie la quantité de lait consommée à l'autre micro:bit via la radio.
     """
-    send_packet_with_nonce(session_key, "MILK", str(milk_doses))
+    send_packet_with_nonce(session_key, "0x03", str(milk_doses))
 
 def handle_buttons():
     """
@@ -304,7 +306,7 @@ def receive_temp():
     incoming = radio.receive()
     if incoming:  # Regarde si il y a un message
         packet_type, length, content = receive_packet(incoming,session_key)
-        if packet_type == "TEMP":
+        if packet_type == "0x04":
             temperatur = int(content)  # Upadate la valeur temperatur (temperature) si il recois un packet de type TEMP et la mets en entier
 
 def display_temp():
@@ -390,7 +392,7 @@ def etat():
     incoming = radio.receive()
     if incoming:  # Regarde si il y a un message
         packet_type, length, content = receive_packet(incoming, session_key)
-        if packet_type == "ETAT":
+        if packet_type == "0x05":
             if content == "endormi":
                 baby_state = 0
             if content == "agité":

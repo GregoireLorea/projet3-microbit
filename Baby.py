@@ -2,12 +2,18 @@ from microbit import *
 import radio
 import random
 import music
-import math
 
-#Can be used to filter the communication, only the ones with the same parameters will receive messages
-#radio.config(group=23, channel=2, address=0x11111111)
-#default : channel=7 (0-83), address = 0x75626974, group = 0 (0-255)
+######################
+# TYPES DE PAQUETS   #
+# 0x01 : CHALLENGE   #
+# 0x02 : REPONSE     #
+# 0x03 : MILK DOSES  #
+# 0x04 : TEMPERATURE #
+# 0x05 : ETAT EVEIL  #
+######################
 
+
+#Initialisation des variables du micro:bit
 radio.on()
 connexion_established = False
 key = "GROUPEB07ONT0P"
@@ -110,7 +116,7 @@ def add_nonce(nonce):
     Ajoute un nonce à la liste tout en limitant la taille.
     """
     if len(nonce_list) >= max_nonce_size:
-        nonce_list.pop()  # Supprime un élément aléatoire (ou le plus ancien avec une structure adaptée)
+        nonce_list.pop()  # Supprime un élément aléatoire (ou le plus ancien avec une structure adaptée) pour ne pas avoir un MemoryError
     nonce_list.add(nonce)
     
 def send_packet(key, type, content):
@@ -260,7 +266,7 @@ def receive_milk_doses():
     
     if incoming:
         packet_type, length, content = receive_packet(incoming, session_key)
-        if packet_type == "MILK":
+        if packet_type == "0x03":
             milk_doses = content
             display_milk_doses()
         
@@ -278,7 +284,7 @@ def interface():
 
 def send_temp():
     current_temp = str(temperature())
-    send_packet_with_nonce(session_key, "TEMP", current_temp)
+    send_packet_with_nonce(session_key, "0x04", current_temp)
     if button_b.is_pressed():
         display.scroll(current_temp)
 
@@ -298,26 +304,27 @@ def etat():
     état = degrée_agitation()
     if état == "endormi":
         send_etat(état)
-        print(état)
         sleep(300)
     if état == "agité":
         send_etat(état)
-        print(état)
-        sleep(3000)
+        sleep(2000)
     if état == "tagité":
         send_etat(état)
-        print(état)
-        sleep(1000)
+        for x in range(2):
+            music.play(['C4:4', 'D4', 'E4', 'C4'])
+        for x in range(2):
+            music.play(['E4:4', 'F4', 'G4:8'])
+        sleep(2000)
     
 
 def send_etat(état):
-    send_packet_with_nonce(session_key, "ETAT", état) 
-    send_packet_with_nonce(session_key, "ETAT", état) 
-    send_packet_with_nonce(session_key, "ETAT", état) 
-    send_packet_with_nonce(session_key, "ETAT", état) 
-    send_packet_with_nonce(session_key, "ETAT", état) 
-    send_packet_with_nonce(session_key, "ETAT", état) 
-    send_packet_with_nonce(session_key, "ETAT", état) 
+    send_packet_with_nonce(session_key, "0x05", état)
+    send_packet_with_nonce(session_key, "0x05", état)
+    send_packet_with_nonce(session_key, "0x05", état)
+    send_packet_with_nonce(session_key, "0x05", état)
+    send_packet_with_nonce(session_key, "0x05", état)
+    send_packet_with_nonce(session_key, "0x05", état)
+    send_packet_with_nonce(session_key, "0x05", état)
         
 
 ########
@@ -337,3 +344,6 @@ def main():
             
             
 main()
+
+
+
