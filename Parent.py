@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 from microbit import *
 import radio
 import random
@@ -382,7 +383,7 @@ def interface(): #état d'éveil du bébé
     if baby_state == 2:
     
         display.show(Image.SAD)
-        if running_time() > ignore_alert_until:
+        if running_time() > ignore_alert_until: # Vérifie si les alertes sont ignorées
             alerte_parent()
         sleep(2000)
         display.scroll("CHEK BABY", delay=50, wait=True)
@@ -392,7 +393,7 @@ def etat():
     incoming = radio.receive()
     if incoming:  # Regarde si il y a un message
         packet_type, length, content = receive_packet(incoming, session_key)
-        if packet_type == "0x05":
+        if packet_type == "0x05": # Check si le packet est de type ETAT
             if content == "endormi":
                 baby_state = 0
             if content == "agité":
@@ -401,7 +402,7 @@ def etat():
                 baby_state = 2
 
         
-    interface()
+    interface() # Affiche l'état du bébé
     
 
 
@@ -415,7 +416,7 @@ def main():
     initialising()
     if connexion_established:
         while True:
-            etat()
+            etat() # Gère l'état
             toggle_interface()  # Gère l'activation/désactivation de l'interface
             if interface_active and is_parent: # Si l'interface est active et que le micro:bit est parent
                 handle_buttons()  # Parent : Gère les boutons

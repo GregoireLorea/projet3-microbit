@@ -23,8 +23,6 @@ nonce_list = set()
 baby_state = 0
 max_nonce_size = 20 #ajouté pour ne pas limiter la mémoire, MEMORY OUT OF RANGE
 last_send_time = 0  # Temps du dernier envoi
-send_duration_agité = 5000  # Durée en millisecondes pour "agité" (5 secondes)
-send_duration_très_agité = 10000  # Durée en millisecondes pour "très agité" (10 secondes)
 previous_state = ""
 
 milk_doses = 0
@@ -106,18 +104,18 @@ def send_packet_with_nonce(key, type, content):
     """
     Envoie un paquet avec un nonce unique pour éviter les attaques de rejeu.
     """
-    nonce = generate_nonce()
-    message = (nonce + ":" + content)
-    send_packet(key, type, message)
-    add_nonce(nonce)  
+    nonce = generate_nonce() # Générer un nonce
+    message = (nonce + ":" + content) #Format nonce : content
+    send_packet(key, type, message) # Envoi du paquet
+    add_nonce(nonce)  # Ajout du nonce à la liste
 
 def add_nonce(nonce):
     """
     Ajoute un nonce à la liste tout en limitant la taille.
     """
-    if len(nonce_list) >= max_nonce_size:
+    if len(nonce_list) >= max_nonce_size: 
         nonce_list.pop()  # Supprime un élément aléatoire (ou le plus ancien avec une structure adaptée) pour ne pas avoir un MemoryError
-    nonce_list.add(nonce)
+    nonce_list.add(nonce) # Ajoute le nonce à la liste
     
 def send_packet(key, type, content):
     """
@@ -162,13 +160,13 @@ def receive_packet(packet_received, key):
     Traite les paquets reçus via l'interface radio du micro:bit.
     Si un nonce est détecté comme déjà utilisé, le message est ignoré.
     """
-    type, length, message = unpack_data(packet_received, key)
+    type, length, message = unpack_data(packet_received, key) 
     if message:
-        nonce, content = message.split(':', 1)
+        nonce, content = message.split(':', 1) # Découper le nonce et le contenu
         if nonce not in nonce_list:  # Vérifie que le nonce est unique
-            add_nonce(nonce)
+            add_nonce(nonce) # Ajoute le nonce à la liste
             return type, length, content
-    return "", 0, ""
+    return "", 0, ""    # Retourner des valeurs vides en cas d'erreur
     
 def calculate_challenge_response(challenge):
     """
@@ -177,8 +175,8 @@ def calculate_challenge_response(challenge):
     :param (str) challenge:            Challenge reçu
 	:return (srt)challenge_response:   Réponse au challenge
     """
-    challenge_reponse = hashing(challenge)
-    return challenge_reponse
+    challenge_reponse = hashing(challenge) # Calculer la réponse
+    return challenge_reponse 
     
 #Ask for a new connection with a micro:bit of the same group
 def establish_connexion(key):
@@ -203,8 +201,8 @@ def establish_connexion(key):
             if packet_type == "0x02":
                 # Valider la réponse
                 expected_response = calculate_challenge_response(challenge)
-                if content == expected_response:
-                    session_key = key+content
+                if content == expected_response: # Si la réponse est correcte
+                    session_key = key+content # Générer la clé de session
                     display.show(Image.YES)  # Afficher un symbole de réussite
                     sleep(1000)
                     display.clear()
@@ -214,7 +212,7 @@ def establish_connexion(key):
 
     # Si aucun paquet valide reçu dans le temps imparti
     
-    display.show(Image.NO)
+    display.show(Image.NO) # Afficher un symbole d'échec
     sleep(5000)
     display.scroll("ERROR CONNECTION: REBOOT MICROBITS", delay=60)
     return False  # Retourner une chaîne vide
@@ -228,7 +226,7 @@ def open():
     Allumage du microbit
     """
     music.play(music.JUMP_UP)
-    display.show(Image.DUCK)
+    display.show(Image.DUCK) 
     sleep(1000)
     display.scroll('Be:Bi Enfant', delay=60)
 
@@ -237,9 +235,9 @@ def initialising():
     Connexion entre les deux microbits
     """
     global connexion_established
-    if establish_connexion(key) == True:
+    if establish_connexion(key) == True: # Établir la connexion, si elle est juste, 
         connexion_established = True
-        return connexion_established
+        return connexion_established # Retourner la connexion établie
     else:
         while True:
             display.show(Image.NO)  # Afficher un symbole d'échec
@@ -254,39 +252,39 @@ def display_milk_doses():
     """
     Affiche la quantité de lait consommée en doses sur le panneau LED.
     """
-    display.scroll("Milk: {}".format(milk_doses), delay=80)
+    display.scroll("Milk: {}".format(milk_doses), delay=80) # Afficher la quantité de lait
 
 
 def receive_milk_doses():
     """
     Reçoit la quantité de lait consommée depuis un autre micro:bit.
     """
-    global milk_doses
-    incoming = radio.receive()
+    global milk_doses 
+    incoming = radio.receive() # Réception d'un paquet
     
     if incoming:
         packet_type, length, content = receive_packet(incoming, session_key)
-        if packet_type == "0x03":
-            milk_doses = content
-            display_milk_doses()
+        if packet_type == "0x03": # Vérifier le type de paquet
+            milk_doses = content # Mettre à jour la quantité de lait
+            display_milk_doses() # Afficher la quantité de lait
         
 def interface():
     """
     Affiche la quantité de lait si le bouton A est pressé.
     """
 
-    if button_a.is_pressed():
-        display_milk_doses()
+    if button_a.is_pressed(): # Si le bouton A est pressé
+        display_milk_doses() # Afficher la quantité de lait
 
 ###############
 # TEMPERATURE #
 ###############
 
 def send_temp():
-    current_temp = str(temperature())
-    send_packet_with_nonce(session_key, "0x04", current_temp)
-    if button_b.is_pressed():
-        display.scroll(current_temp)
+    current_temp = str(temperature()) # Récupérer la température actuelle
+    send_packet_with_nonce(session_key, "0x04", current_temp) # Envoyer la température
+    if button_b.is_pressed(): # Si le bouton B est pressé
+        display.scroll(current_temp) # Afficher la température
 
 ##############
 # ETAT EVEIL #
@@ -294,9 +292,9 @@ def send_temp():
 def degrée_agitation():
     global durée_mouvement
     état = "endormi"
-    if accelerometer.was_gesture('2g') or accelerometer.was_gesture('shake'):
+    if accelerometer.was_gesture('2g') or accelerometer.was_gesture('shake'): # Si le micro:bit est secoué
         état = "agité"
-    if accelerometer.was_gesture("3g") or accelerometer.was_gesture("freefall"):
+    if accelerometer.was_gesture("3g") or accelerometer.was_gesture("freefall"): # Si le micro:bit est très secoué
         état = "tagité"
     return état
 
@@ -310,16 +308,16 @@ def etat():
         sleep(2000)
     if état == "tagité":
         send_etat(état)
-        for x in range(2):
+        for x in range(2): # Joue "Frère Jacques" deux fois
             music.play(['C4:4', 'D4', 'E4', 'C4'])
         for x in range(2):
             music.play(['E4:4', 'F4', 'G4:8'])
         sleep(2000)
     
 
-def send_etat(état):
-    send_packet_with_nonce(session_key, "0x05", état)
-    send_packet_with_nonce(session_key, "0x05", état)
+def send_etat(état): 
+    send_packet_with_nonce(session_key, "0x05", état) # Envoi de l'état assez de fois pour être sur qu'il soit bien reçu
+    send_packet_with_nonce(session_key, "0x05", état) 
     send_packet_with_nonce(session_key, "0x05", état)
     send_packet_with_nonce(session_key, "0x05", état)
     send_packet_with_nonce(session_key, "0x05", état)
@@ -336,7 +334,7 @@ def main():
     initialising()
     if connexion_established:
         while True:
-            display.show(Image.DUCK)
+            display.show(Image.DUCK) 
             receive_milk_doses()
             interface()
             send_temp()
