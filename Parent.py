@@ -14,14 +14,14 @@ import music
 
 #Initialisation des variables du micro:bit
 radio.on()
-connexion_established = False
-key = "GROUPEB07ONT0P"
-connexion_key = None
-nonce_list = set()
-baby_state = 0
-milk_doses = 0 
-is_parent = True
-interface_active = False
+connexion_established = False # Indique si une connexion a été établie
+key = "GROUPEB07ONT0P" # Clé de chiffrement principale
+connexion_key = None # Clé utilisée pour les communications sécurisées
+nonce_list = set() # Ensemble pour stocker les nonces uniques
+baby_state = 0  # État de l'enfant (par exemple, endormi ou éveillé)
+milk_doses = 0  # Nombre de doses de lait consommées
+is_parent = True # Indique si le micro:bit est dans le rôle de parent
+interface_active = False # Indique si l'interface est active
 temperatur = None
 max_nonce_size = 50 #max nonce dans la tuple
 ignore_alert_until = 0 #pour les alertes temp
@@ -57,20 +57,20 @@ def hashing(string):
 		return value
 
 	if string:
-		x = ord(string[0]) << 7
-		m = 1000003
+		x = ord(string[0]) << 7 # Décale le code ASCII du premier caractère
+		m = 1000003   # Facteur de multiplication pour le hachage
 		for c in string:
-			x = to_32((x*m) ^ ord(c))
-		x ^= len(string)
+			x = to_32((x*m) ^ ord(c))  # Combine les caractères avec XOR
+		x ^= len(string) # Inclut la longueur de la chaîne dans le calcul
 		if x == -1:
-			x = -2
+			x = -2 # Remplace -1 pour éviter une ambiguïté
 		return str(x)
 	return ""
     
 def vigenere(message, key, decryption=False):
     text = ""
     key_length = len(key)
-    key_as_int = [ord(k) for k in key]
+    key_as_int = [ord(k) for k in key] # Convertit la clé en valeurs ASCII
 
     for i, char in enumerate(str(message)):
         #Letters encryption/decryption
@@ -82,7 +82,7 @@ def vigenere(message, key, decryption=False):
                 modified_char = chr((ord(char.upper()) + key_as_int[key_index] - 26) % 26 + ord('A'))
             #Put back in lower case if it was
             if char.islower():
-                modified_char = modified_char.lower()
+                modified_char = modified_char.lower() # Conserve la casse
             text += modified_char
         #Digits encryption/decryption
         elif char.isdigit():
@@ -93,7 +93,7 @@ def vigenere(message, key, decryption=False):
                 modified_char = str((int(char) + key_as_int[key_index]) % 10)
             text += modified_char
         else:
-            text += char
+            text += char # Conserve les caractères spéciaux inchangés
     return text
 
 def generate_nonce():
@@ -206,10 +206,10 @@ def open():
     """
     Allumage du microbit
     """
-    music.play(music.JUMP_UP)
-    display.show(Image.HOUSE)
+    music.play(music.JUMP_UP) # Joue un son d'accueil
+    display.show(Image.HOUSE) # Affiche une maison sur l'écran LED
     sleep(1000)
-    display.scroll('Be:Bi Parent', delay=60)
+    display.scroll('Be:Bi Parent', delay=60) # Scrolle le texte "Be:Bi Parent"
 
 def initialising():
     """
@@ -220,13 +220,13 @@ def initialising():
     while running_time() - start_time < 15000:  # Timeout de 15 secondes
         # respond_to_connexion_request(key)
         display.show(Image.ALL_CLOCKS, delay=100, loop=False, clear=True,)
-        if respond_to_connexion_request(key) == True:
+        if respond_to_connexion_request(key) == True: # Vérifie la demande de connexion
             display.show(Image.YES)  # Afficher un symbole de réussite
             sleep(1000)
             connexion_established = True
             return connexion_established
    
-    while True:
+    while True: # Si la connexion échoue, boucle indéfiniment avec un message d'erreur
             display.show(Image.NO)  # Afficher un symbole d'échec
             sleep(5000)
             display.scroll("ERROR CONNECTION: REBOOT MICROBITS", delay=60)
@@ -258,17 +258,17 @@ def handle_buttons():
 
     # Ajouter une dose de lait
     if button_a.was_pressed():
-        milk_doses += 1
-        display.show(Image.HAPPY)
+        milk_doses += 1 # Incrémente la dose
+        display.show(Image.HAPPY) # Affiche un visage heureux
         sleep(500)
-        display_milk_doses()
-        send_milk_doses()
+        display_milk_doses() # Affiche la nouvelle valeur
+        send_milk_doses()  # Envoie la mise à jour
 
     # Supprimer une dose de lait
     elif button_b.was_pressed():
-        if milk_doses > 0:
+        if milk_doses > 0: # Vérifie que la dose est positive avant de décrémenter
             milk_doses -= 1
-        display.show(Image.SAD)
+        display.show(Image.SAD)  # Affiche un visage triste
         sleep(500)
         display_milk_doses()
         send_milk_doses()
@@ -289,11 +289,11 @@ def toggle_interface():
 
     # Vérifie une pression longue sur le bouton A
     if button_a.is_pressed():
-        start_time = running_time()
-        while button_a.is_pressed():
+        start_time = running_time() # Enregistre le début de l'appui
+        while button_a.is_pressed(): # Tant que le bouton est maintenu
             if running_time() - start_time > 2000:  # Appui long (2 secondes)
-                interface_active = not interface_active
-                display.show(Image.YES if interface_active else Image.NO)
+                interface_active = not interface_active # Bascule l'état de l'interface
+                display.show(Image.YES if interface_active else Image.NO) # Montre l'état
                 sleep(1000)
                 return
 
@@ -372,27 +372,27 @@ def temp():
 
 
 
-def interface(): #état d'éveil du bébé
+def interface(): #Affiche l'état d'éveil du bébé sur le micro:bit parent
     global baby_state
     
-    if baby_state == 0:
-        display.show(Image.ASLEEP)
-    if baby_state == 1:
-        display.show(Image.HAPPY)
-    if baby_state == 2:
+    if baby_state == 0: # Bébé endormi
+        display.show(Image.ASLEEP) # Affiche une icône de sommeil
+    if baby_state == 1: # Bébé agité
+        display.show(Image.HAPPY) # Affiche une icône heureuse
+    if baby_state == 2: # Bébé très agité
     
-        display.show(Image.SAD)
-        if running_time() > ignore_alert_until:
-            alerte_parent()
+        display.show(Image.SAD) # Affiche une icône triste
+        if running_time() > ignore_alert_until: # Vérifie si une alerte est nécessaire
+            alerte_parent() # Déclenche une alerte visuelle et sonore pour le parent
         sleep(2000)
-        display.scroll("CHEK BABY", delay=50, wait=True)
+        display.scroll("CHEK BABY", delay=50, wait=True) # Message pour vérifier le bébé
 
 def etat():
     global baby_state
-    incoming = radio.receive()
-    if incoming:  # Regarde si il y a un message
-        packet_type, length, content = receive_packet(incoming, session_key)
-        if packet_type == "0x05":
+    incoming = radio.receive()  # Récupère les messages radio entrants
+    if incoming:  # Vérifie si un message est reçu
+        packet_type, length, content = receive_packet(incoming, session_key) 
+        if packet_type == "0x05": # Identifie le type de paquet comme un état d'éveil
             if content == "endormi":
                 baby_state = 0
             if content == "agité":

@@ -51,48 +51,48 @@ def hashing(string):
 		:param (int) value: valeur du caractère transformé par la valeur de hachage de cette itération
 		:return (int): entier signé de 32 bits représentant 'value'
 		"""
-		value = value % (2 ** 32)
-		if value >= 2**31:
+		value = value % (2 ** 32) # Réduction modulo 2**32
+		if value >= 2**31: # Si la valeur dépasse 2**31, ajustement pour le rendre signé
 			value = value - 2 ** 32
 		value = int(value)
 		return value
 
 	if string:
-		x = ord(string[0]) << 7
-		m = 1000003
+		x = ord(string[0]) << 7 # Décalage gauche de 7 bits pour le premier caractère
+		m = 1000003   # Constante multiplicative pour le hachage
 		for c in string:
-			x = to_32((x*m) ^ ord(c))
-		x ^= len(string)
-		if x == -1:
+			x = to_32((x*m) ^ ord(c)) # Calcul itératif du hachage
+		x ^= len(string) # Mélange final avec la longueur de la chaîne
+		if x == -1: # Cas particulier pour éviter le résultat -1
 			x = -2
-		return str(x)
+		return str(x) # Conversion en chaîne pour correspondre au retour attendu
 	return ""
     
 def vigenere(message, key, decryption=False):
-    text = ""
-    key_length = len(key)
-    key_as_int = [ord(k) for k in key]
+    text = "" # Résultat final du traitement
+    key_length = len(key) # Longueur de la clé
+    key_as_int = [ord(k) for k in key] 
 
-    for i, char in enumerate(str(message)):
-        key_index = i % key_length
+    for i, char in enumerate(str(message)): # Parcours des caractères du message
+        key_index = i % key_length  # Index cyclique pour parcourir la clé
         #Letters encryption/decryption
-        if char.isalpha():
-            if decryption:
+        if char.isalpha(): # Chiffrement/déchiffrement des lettres
+            if decryption: # Déchiffrement : décalage négatif
                 modified_char = chr((ord(char.upper()) - key_as_int[key_index] + 26) % 26 + ord('A'))
-            else : 
+            else : # Chiffrement : décalage positif
                 modified_char = chr((ord(char.upper()) + key_as_int[key_index] - 26) % 26 + ord('A'))
             #Put back in lower case if it was
-            if char.islower():
+            if char.islower():  # Conservation de la casse initiale
                 modified_char = modified_char.lower()
             text += modified_char
         #Digits encryption/decryption
-        elif char.isdigit():
+        elif char.isdigit():   # Chiffrement/déchiffrement des chiffres
             if decryption:
                 modified_char = str((int(char) - key_as_int[key_index]) % 10)
             else:  
                 modified_char = str((int(char) + key_as_int[key_index]) % 10)
             text += modified_char
-        else:
+        else: # Conservation des autres caractères sans modification.
             text += char
     return text
 
@@ -164,9 +164,9 @@ def receive_packet(packet_received, key):
     """
     type, length, message = unpack_data(packet_received, key)
     if message:
-        nonce, content = message.split(':', 1)
+        nonce, content = message.split(':', 1) # Sépare le nonce du contenu
         if nonce not in nonce_list:  # Vérifie que le nonce est unique
-            add_nonce(nonce)
+            add_nonce(nonce) # Ajoute le nonce à la liste pour éviter les duplications
             return type, length, content
     return "", 0, ""
     
@@ -177,7 +177,7 @@ def calculate_challenge_response(challenge):
     :param (str) challenge:            Challenge reçu
 	:return (srt)challenge_response:   Réponse au challenge
     """
-    challenge_reponse = hashing(challenge)
+    challenge_reponse = hashing(challenge) # Utilise la fonction de hachage
     return challenge_reponse
     
 #Ask for a new connection with a micro:bit of the same group
@@ -241,7 +241,7 @@ def initialising():
         connexion_established = True
         return connexion_established
     else:
-        while True:
+        while True: # Boucle infinie si échec de la connexion
             display.show(Image.NO)  # Afficher un symbole d'échec
             sleep(5000)
             display.scroll("ERROR CONNECTION: REBOOT MICROBITS", delay=60)
@@ -266,7 +266,7 @@ def receive_milk_doses():
     
     if incoming:
         packet_type, length, content = receive_packet(incoming, session_key)
-        if packet_type == "0x03":
+        if packet_type == "0x03":  # Vérifie que le paquet concerne le lait
             milk_doses = content
             display_milk_doses()
         
@@ -336,7 +336,7 @@ def main():
     initialising()
     if connexion_established:
         while True:
-            display.show(Image.DUCK)
+            display.show(Image.DUCK) # Icône d'attente
             receive_milk_doses()
             interface()
             send_temp()
