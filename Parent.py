@@ -255,31 +255,31 @@ def handle_buttons():
     logo : Réinitialiser à zéro.
     """
     global milk_doses
-
+    if interface_active:
     # Ajouter une dose de lait
-    if button_a.was_pressed():
-        milk_doses += 1
-        display.show(Image.HAPPY)
-        sleep(500)
-        display_milk_doses()
-        send_milk_doses()
-
-    # Supprimer une dose de lait
-    elif button_b.was_pressed():
-        if milk_doses > 0:
-            milk_doses -= 1
-        display.show(Image.SAD)
-        sleep(500)
-        display_milk_doses()
-        send_milk_doses()
-
-    # Réinitialiser la quantité de lait
-    if pin_logo.is_touched():
-        milk_doses = 0
-        display.show(Image.NO)
-        sleep(500)
-        display_milk_doses()
-        send_milk_doses()
+        if button_a.was_pressed():
+            milk_doses += 1
+            display.show(Image.HAPPY)
+            sleep(500)
+            display_milk_doses()
+            send_milk_doses()
+    
+        # Supprimer une dose de lait
+        elif button_b.was_pressed():
+            if milk_doses > 0:
+                milk_doses -= 1
+            display.show(Image.SAD)
+            sleep(500)
+            display_milk_doses()
+            send_milk_doses()
+    
+        # Réinitialiser la quantité de lait
+        if pin_logo.is_touched():
+            milk_doses = 0
+            display.show(Image.NO)
+            sleep(500)
+            display_milk_doses()
+            send_milk_doses()
 
 def toggle_interface():
     """
