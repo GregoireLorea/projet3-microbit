@@ -12,20 +12,17 @@ import music
 # 0x05 : ETAT EVEIL  #
 ######################
 
+# GROUPE B07, BABY PY
+
 
 #Initialisation des variables du micro:bit
 radio.on()
-connexion_established = False
-key = "GROUPEB07ONT0P"
-session_key = ""
-connexion_key = None
-nonce_list = set()
-baby_state = 0
+connexion_established = False # Connexion établie
+key = "GROUPEB07ONT0P" # Clé de chiffrement
+session_key = "" # Clé de session
+nonce_list = set() # Liste des nonces
 max_nonce_size = 20 #ajouté pour ne pas limiter la mémoire, MEMORY OUT OF RANGE
-last_send_time = 0  # Temps du dernier envoi
-previous_state = ""
-
-milk_doses = 0
+milk_doses = 0 # Quantité de lait consommée
 
 #####################
 # CRYPTO ET GENERAL #

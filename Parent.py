@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 from microbit import *
 import radio
 import random
@@ -13,17 +12,21 @@ import music
 # 0x05 : ETAT EVEIL  #
 ######################
 
+
+# GROUPE B07, PARENT PY
+
+
 #Initialisation des variables du micro:bit
 radio.on()
-connexion_established = False
-key = "GROUPEB07ONT0P"
-connexion_key = None
-nonce_list = set()
-baby_state = 0
-milk_doses = 0 
-is_parent = True
-interface_active = False
-temperatur = None
+connexion_established = False # Connexion établie
+key = "GROUPEB07ONT0P" # Clé de chiffrement
+session_key = "" # Clé de session
+nonce_list = set() # Liste des nonces
+baby_state = 0 # Etat du bébé
+milk_doses = 0 # Quantité de lait consommée
+is_parent = True # Le micro:bit est parent
+interface_active = False # Interface de lait (désactivée par défaut)
+temperatur = None # Température 
 max_nonce_size = 50 #max nonce dans la tuple
 ignore_alert_until = 0 #pour les alertes temp
 
